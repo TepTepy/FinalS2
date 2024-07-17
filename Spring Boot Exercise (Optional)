@@ -1,0 +1,127 @@
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.persistence.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/customers")
+public class CustomerController {
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Entity
+    class Customer {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+        private String firstName;
+        private String lastName;
+        private String phone;
+
+        // Constructors, getters, setters
+        public Customer() {}
+
+        public Customer(String id, String lastName, String firstName, String phone) {
+            this.id = id;
+            this.lastName = lastName;
+            this.firstName = firstName;
+            this.phone = phone;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
+
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+    }
+
+    @Repository
+    public interface CustomerRepository extends JpaRepository<Customer, Long> {
+    }
+
+    @Service
+    public class CustomerService {
+
+        @Autowired
+        private CustomerRepository customerRepository;
+
+        public Customer addCustomer(Customer customer) {
+            return customerRepository.save(customer);
+        }
+
+        public Optional<Customer> getCustomerById(Long id) {
+            return customerRepository.findById(id);
+        }
+
+        public List<Customer> getAllCustomers() {
+            return customerRepository.findAll();
+        }
+
+        public Customer updateCustomer(Long id, Customer updatedCustomer) {
+            if (customerRepository.existsById(id)) {
+                updatedCustomer.setId(id);
+                return customerRepository.save(updatedCustomer);
+            }
+            return null;
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Customer> addCustomer(@RequestBody Customer customer) {
+        Customer newCustomer = customerService.addCustomer(customer);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newCustomer);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Customer> getCustomerById(@PathVariable("id") Long id) {
+        Optional<Customer> customer = customerService.getCustomerById(id);
+        return customer.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Customer>> getAllCustomers() {
+        List<Customer> customers = customerService.getAllCustomers();
+        return ResponseEntity.ok(customers);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Customer> updateCustomer(@PathVariable("id") Long id, @RequestBody Customer updatedCustomer) {
+        Customer updated = customerService.updateCustomer(id, updatedCustomer);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        }
+        return ResponseEntity.notFound().build();
+    }
+}
